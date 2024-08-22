@@ -18,11 +18,11 @@ import {
 } from "@mui/material";
 import { Cancel, Search, Share } from "@mui/icons-material";
 
-import { compareDates } from "../utils/helpers";
+import { dateCompare } from "../utils/helpers";
 import { useParsedCSVData } from "../utils/hooks/useParsedCSVData";
 import Spinner from "./Spinner";
 import ResetTableModel from "./ResetTableModel";
-
+import DataChart from "./DataChart";
 interface FMSCADataTableProps {
   isPivot: boolean;
 }
@@ -34,7 +34,9 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
   );
   const [showSearch, setShowSearch] = useState<boolean>(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [rowGrouping, setRowGrouping] = useState<null | string>("Month");
+  const [rowWiseGrouping, setRowWiseGrouping] = useState<null | string>(
+    "Month"
+  );
   const [openResetModal, setOpenResetModal] = useState(false);
   const isFirstRender = useRef(true);
 
@@ -50,7 +52,7 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
     switch (group) {
       case "Month":
         table.setGrouping(["dateMonth"]);
-        setRowGrouping("Month");
+        setRowWiseGrouping("Month");
         table.setColumnVisibility({
           dateMonth: isPivot ? true : false,
           dateYear: false,
@@ -59,7 +61,7 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
         break;
       case "Year":
         table.setGrouping(["dateYear"]);
-        setRowGrouping("Year");
+        setRowWiseGrouping("Year");
         table.setColumnVisibility({
           dateYear: isPivot ? true : false,
           dateMonth: false,
@@ -68,7 +70,7 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
         break;
       case "Week":
         table.setGrouping(["dateWeek"]);
-        setRowGrouping("Week");
+        setRowWiseGrouping("Week");
         table.setColumnVisibility({
           dateYear: false,
           dateMonth: false,
@@ -77,7 +79,7 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
         break;
       default:
         table.setGrouping([]);
-        setRowGrouping("");
+        setRowWiseGrouping("");
         table.setColumnVisibility({
           dateYear: false,
           dateMonth: isPivot ? true : false,
@@ -114,7 +116,7 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
             : "text",
           ...(["created_dt", "data_source_modified_dt"].includes(col.field) && {
             sortingFn: (rowA: any, rowB: any, columnId: any) => {
-              return compareDates(
+              return dateCompare(
                 rowA.getValue(columnId),
                 rowB.getValue(columnId)
               );
@@ -227,7 +229,7 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
                     return (
                       <MenuItem
                         key={key}
-                        selected={key === rowGrouping}
+                        selected={key === rowWiseGrouping}
                         onClick={() => handleGrouping(table, key)}
                         sx={{
                           "&.Mui-selected": {
@@ -251,10 +253,13 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
                 navigator.clipboard
                   .writeText(currentUrl)
                   .then(() => {
-                    alert("URL copied to clipboard!");
+                    alert("Success! The URL is now copied to your clipboard.");
                   })
                   .catch((err) => {
-                    console.error("Failed to copy URL: ", err);
+                    console.error(
+                      "Unable to copy the URL. Please try again",
+                      err
+                    );
                   });
               }}
               variant="contained"
@@ -282,12 +287,9 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
     enableDensityToggle: false,
     enableFullScreenToggle: false,
     enableGlobalFilter: !isPivot,
-    // Editing
     enableCellActions: !isPivot,
     enableEditing: !isPivot,
-    enableRowActions: !isPivot,
     editDisplayMode: "cell",
-    // Columns
     enableColumnResizing: true,
     enableColumnDragging: !isPivot,
     enableColumnOrdering: true,
@@ -299,6 +301,10 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
     },
     autoResetAll: true,
   });
+
+  const dataTableOriginalData = useMemo(() => {
+    return table.getFilteredRowModel().rows.map((item) => item.original);
+  }, [table.getFilteredRowModel().rows]);
 
   const handleSave = useCallback(() => {
     const filterArray = table.getState().columnFilters || [];
@@ -314,7 +320,6 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
       params.append(filter.id, filter.value);
     });
 
-    // For first render
     if (isFirstRender.current) {
       const tableFiltersFromURL = [];
       for (const [key, value] of new URL(window.location.href).searchParams) {
@@ -355,6 +360,12 @@ const DataTableView: FC<FMSCADataTableProps> = ({ isPivot }) => {
           }}
           open={openResetModal}
         />
+      )}
+
+      {parsedData.length > 0 && (
+        <Box sx={{ mt: "1rem" }}>
+          <DataChart originalData={dataTableOriginalData} />
+        </Box>
       )}
     </Box>
   );

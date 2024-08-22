@@ -22,13 +22,13 @@ const ResetModal = ({ handleClose, handleAgree, open }: SaveModalProps) => {
       <DialogTitle id="alert-dialog-title">Reset Filters</DialogTitle>
       <DialogContent>
         <DialogContentText id="alert-dialog-description">
-          Do you want to Reset Table Filters?
+          Are you sure you want to reset all table filters?
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Disagree</Button>
+        <Button onClick={handleClose}>Cancel</Button>
         <Button onClick={handleAgree} autoFocus>
-          Agree
+          Yes
         </Button>
       </DialogActions>
     </Dialog>
